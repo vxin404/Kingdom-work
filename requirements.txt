@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-multipart
+PyMuPDF
+openpyxl
+numpy
+tencentcloud-sdk-python
+tencentcloud-sdk-python-hunyuan

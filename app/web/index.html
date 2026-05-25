@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF QA Demo</title>
+  <style>
+    body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; }
+    h1 { margin-bottom: 8px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    textarea, input[type="file"] { width: 100%; }
+    textarea { min-height: 100px; }
+    button { padding: 8px 14px; cursor: pointer; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f7f7f7; padding: 12px; border-radius: 8px; }
+    .muted { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>智能文档问答 Demo</h1>
+  <p class="muted">上传 PDF 后，同步执行 OCR、切块、embedding 和索引；提问先返回 topK 相关片段。</p>
+
+  <div class="card">
+    <h3>1. 上传 PDF</h3>
+    <input id="pdfFile" type="file" accept=".pdf" />
+    <div style="margin-top: 12px;"><button onclick="uploadPdf()">上传并处理</button></div>
+    <pre id="uploadResult"></pre>
+  </div>
+
+  <div class="card">
+    <h3>2. 提问</h3>
+    <textarea id="question" placeholder="例如：表1里键宽b各类型分别是多少？"></textarea>
+    <div style="margin-top: 12px;"><button onclick="askQuestion()">提问</button></div>
+    <pre id="askResult"></pre>
+  </div>
+
+  <script>
+    async function uploadPdf() {
+      const input = document.getElementById('pdfFile');
+      const out = document.getElementById('uploadResult');
+      if (!input.files.length) {
+        out.textContent = '请先选择 PDF 文件';
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', input.files[0]);
+      out.textContent = '处理中，请稍候...';
+      const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await resp.json();
+      out.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function askQuestion() {
+      const q = document.getElementById('question').value.trim();
+      const out = document.getElementById('askResult');
+      if (!q) {
+        out.textContent = '请输入问题';
+        return;
+      }
+      out.textContent = '检索中...';
+      const resp = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, topk: 5 })
+      });
+      const data = await resp.json();
+      out.textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
