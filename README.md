@@ -53,6 +53,7 @@ python run_self_test.py \
 
 ## 工程demo运行
 
+使用python3.10版本运行
 安装依赖：
 
 ```bash
