@@ -48,6 +48,18 @@ def _build_ocr_client(cfg: TencentOcrConfig):
     return ocr_client.OcrClient(cred, cfg.region, client_profile)
 
 
+def _raise_if_ocr_response_invalid(resp_obj: dict, *, api_name: str, expected_keys: list[str]) -> None:
+    if not isinstance(resp_obj, dict):
+        raise RuntimeError(f"{api_name} returned invalid response type: {type(resp_obj)}")
+    if not resp_obj:
+        raise RuntimeError(f"{api_name} returned empty response")
+    err = resp_obj.get("Error") or resp_obj.get("ErrorMsg") or resp_obj.get("ErrMsg")
+    if err:
+        raise RuntimeError(f"{api_name} returned error: {err}")
+    if expected_keys and not any(key in resp_obj for key in expected_keys):
+        raise RuntimeError(f"{api_name} missing expected keys: {expected_keys}")
+
+
 
 def general_basic_ocr_image(*, cfg: TencentOcrConfig, image_bytes: bytes, retry: int = 3) -> dict:
     from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
@@ -61,7 +73,9 @@ def general_basic_ocr_image(*, cfg: TencentOcrConfig, image_bytes: bytes, retry:
     for attempt in range(retry + 1):
         try:
             resp = client.GeneralBasicOCR(req)
-            return json.loads(resp.to_json_string())
+            obj = json.loads(resp.to_json_string())
+            _raise_if_ocr_response_invalid(obj, api_name="GeneralBasicOCR", expected_keys=["TextDetections"])
+            return obj
         except TencentCloudSDKException as e:
             last_err = e
             if attempt >= retry:
@@ -93,7 +107,13 @@ def table_ocr_image(*, cfg: TencentOcrConfig, image_bytes: bytes, mode: str, ret
     for attempt in range(retry + 1):
         try:
             resp = call(req)
-            return json.loads(resp.to_json_string())
+            obj = json.loads(resp.to_json_string())
+            _raise_if_ocr_response_invalid(
+                obj,
+                api_name=f"TableOCR:{mode}",
+                expected_keys=["Data", "TableDetections", "TableInfos"],
+            )
+            return obj
         except TencentCloudSDKException as e:
             last_err = e
             if attempt >= retry:
@@ -105,6 +125,8 @@ def table_ocr_image(*, cfg: TencentOcrConfig, image_bytes: bytes, mode: str, ret
 
 def extract_page_text(resp: dict) -> str:
     detections = resp.get("TextDetections") or []
+    if not isinstance(detections, list):
+        raise RuntimeError("GeneralBasicOCR response TextDetections is not a list")
     return "\n".join((x.get("DetectedText") or "").strip() for x in detections if (x.get("DetectedText") or "").strip()).strip()
 
 

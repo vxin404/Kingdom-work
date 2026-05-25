@@ -22,6 +22,8 @@ def _load_tencent_cred() -> tuple[str, str]:
 def _extract_embedding_from_response(obj: dict) -> list[float]:
     if not isinstance(obj, dict):
         raise ValueError(f"unexpected embedding response type: {type(obj)}")
+    if obj.get("ErrorMsg"):
+        raise RuntimeError(f"embedding API returned error: {obj.get('ErrorMsg')}")
     data = obj.get("Data")
     if isinstance(data, list) and data and isinstance(data[0], dict):
         emb = data[0].get("Embedding")
@@ -47,6 +49,8 @@ def get_embedding(text: str, *, region: str, max_chars: int, retry: int = 3) -> 
     from tencentcloud.hunyuan.v20230901 import hunyuan_client, models
 
     payload = (text or "").strip()
+    if not payload:
+        raise ValueError("embedding input text is empty")
     if max_chars > 0 and len(payload) > max_chars:
         payload = payload[:max_chars]
 
@@ -64,7 +68,11 @@ def get_embedding(text: str, *, region: str, max_chars: int, retry: int = 3) -> 
     for attempt in range(retry + 1):
         try:
             resp = client.GetEmbedding(req)
-            return _extract_embedding_from_response(json.loads(resp.to_json_string()))
+            obj = json.loads(resp.to_json_string())
+            vec = _extract_embedding_from_response(obj)
+            if not vec:
+                raise RuntimeError("embedding API returned empty vector")
+            return vec
         except TencentCloudSDKException as e:
             last_err = e
             if attempt >= retry:
