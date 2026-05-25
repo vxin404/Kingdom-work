@@ -1,0 +1,32 @@
+[
+  {
+    "question": "抗拉强度是多少",
+    "must_contain": ["590", "MPa"],
+    "expected_page": 3,
+    "expect_refused": false
+  },
+  {
+    "question": "3.2 对键表面有什么要求",
+    "must_contain": ["裂纹", "浮锈", "氧化皮", "毛刺"],
+    "expected_page": 3,
+    "expect_refused": false
+  },
+  {
+    "question": "表1里键宽b各类型分别是多少",
+    "must_contain": ["1.0", "1.5"],
+    "expected_page": 4,
+    "expect_refused": false
+  },
+  {
+    "question": "键长L的AQL是多少",
+    "must_contain": ["4"],
+    "expected_page": 4,
+    "expect_refused": false
+  },
+  {
+    "question": "这个标准有没有规定键的密度是多少",
+    "must_contain": ["暂时无法确定"],
+    "expected_page": 0,
+    "expect_refused": false
+  }
+]
